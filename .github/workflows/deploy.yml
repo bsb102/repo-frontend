@@ -7,7 +7,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: frontend-innovatech
-  EKS_CLUSTER: cluster-innovatech
+  EKS_CLUSTER: ${{ secrets.EKS_CLUSTER_NAME }}
 
 jobs:
   deploy:
@@ -15,6 +15,15 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+
+      - name: Validar secretos requeridos
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then echo "Falta AWS_ACCESS_KEY_ID"; exit 1; fi
+          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then echo "Falta AWS_SECRET_ACCESS_KEY"; exit 1; fi
+          if [ -z "${{ secrets.AWS_SESSION_TOKEN }}" ]; then echo "Falta AWS_SESSION_TOKEN"; exit 1; fi
+          if [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ]; then echo "Falta AWS_ACCOUNT_ID"; exit 1; fi
+          if [ -z "${{ secrets.EKS_CLUSTER_NAME }}" ]; then echo "Falta EKS_CLUSTER_NAME"; exit 1; fi
+          echo "Usando account ID: ${{ secrets.AWS_ACCOUNT_ID }}"
 
       - name: Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
@@ -39,15 +48,15 @@ jobs:
       - name: Conectar a EKS
         run: |
           aws eks update-kubeconfig \
-            --name ${{ env.EKS_CLUSTER }} \
-            --region ${{ env.AWS_REGION }}
+            --name "${{ env.EKS_CLUSTER }}" \
+            --region "${{ env.AWS_REGION }}"
 
       - name: Actualizar imagen en manifiesto
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          sed -i "s|TU_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/frontend-innovatech:latest|$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG|g" k8s/frontend-deployment.yaml
+          sed -i "s|image: .*frontend-innovatech:latest|image: $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG|g" k8s/frontend-deployment.yaml
 
       - name: Deploy a EKS
         run: kubectl apply -f k8s/
