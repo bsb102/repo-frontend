@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: innovatech-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: innovatech-frontend
+  template:
+    metadata:
+      labels:
+        app: innovatech-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: TU_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/frontend-innovatech:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: REACT_APP_API_URL
+              value: "http://innovatech-backend:3000"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
