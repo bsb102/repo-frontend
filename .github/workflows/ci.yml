@@ -17,6 +17,10 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Construir imagen de validación
+        run: |
+          docker build -t frontend-validate:${{ github.sha }} .
+
       - name: Mostrar información del workflow
         run: |
           echo "GitHub Actions funcionando para frontend"
